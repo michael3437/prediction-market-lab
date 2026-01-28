@@ -98,8 +98,10 @@ class KalshiHttpClient(KalshiBaseClient):
         self.raise_if_bad_response(response)
         return response.json()
 
-    def get(self, path: str, params: dict[str, Any] = {}) -> Any:
+    def get(self, path: str, params: Optional(dict[str, Any]) = None) -> Any:
         """Performs an authenticated GET request to the Kalshi API."""
+        if params is None:
+            params = {}
         self.rate_limit()
         response = requests.get(
             self.host + path,
@@ -109,8 +111,10 @@ class KalshiHttpClient(KalshiBaseClient):
         self.raise_if_bad_response(response)
         return response.json()
 
-    def delete(self, path: str, params: dict[str, Any] = {}) -> Any:
+    def delete(self, path: str, params: Optional(dict[str, Any]) = None) -> Any:
         """Performs an authenticated DELETE request to the Kalshi API."""
+        if params is None:
+            params = {}
         self.rate_limit()
         response = requests.delete(
             self.host + path,

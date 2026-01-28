@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "prediction-market-lab"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "cryptography>=46.0.4",
+    "duckdb>=1.4.4",
+    "numpy>=2.4.1",
+    "pandas>=3.0.0",
+    "platformdirs>=4.5.1",
+    "python-dotenv>=1.2.1",
+    "requests>=2.32.5",
+    "websockets>=16.0",
+]
+
+[project.scripts]
+prediction-market = "prediction_market_lab.cli.main:main" 
