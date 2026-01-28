@@ -97,7 +97,7 @@ class KalshiHttpClient(KalshiBaseClient):
         self.raise_if_bad_response(response)
         return response.json()
 
-    def get(self, path: str, params: Dict[str, Any] = {}) -> Any:
+    def get(self, path: str, params: dict[str, Any] = {}) -> Any:
         """Performs an authenticated GET request to the Kalshi API."""
         self.rate_limit()
         response = requests.get(
@@ -108,7 +108,7 @@ class KalshiHttpClient(KalshiBaseClient):
         self.raise_if_bad_response(response)
         return response.json()
 
-    def delete(self, path: str, params: Dict[str, Any] = {}) -> Any:
+    def delete(self, path: str, params: dict[str, Any] = {}) -> Any:
         """Performs an authenticated DELETE request to the Kalshi API."""
         self.rate_limit()
         response = requests.delete(
@@ -119,11 +119,11 @@ class KalshiHttpClient(KalshiBaseClient):
         self.raise_if_bad_response(response)
         return response.json()
 
-    def get_balance(self) -> Dict[str, Any]:
+    def get_balance(self) -> dict[str, Any]:
         """Retrieves the account balance."""
         return self.get(self.portfolio_url + '/balance')
 
-    def get_exchange_status(self) -> Dict[str, Any]:
+    def get_exchange_status(self) -> dict[str, Any]:
         """Retrieves the exchange status."""
         return self.get(self.exchange_url + "/status")
 
@@ -134,7 +134,7 @@ class KalshiHttpClient(KalshiBaseClient):
         cursor: Optional[str] = None,
         max_ts: Optional[int] = None,
         min_ts: Optional[int] = None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Retrieves trades based on provided filters."""
         params = {
             'ticker': ticker,
@@ -146,6 +146,45 @@ class KalshiHttpClient(KalshiBaseClient):
         # Remove None values
         params = {k: v for k, v in params.items() if v is not None}
         return self.get(self.markets_url + '/trades', params=params)
+
+    def get_markets(
+        self,
+        limit: Optional[int] = None,
+        cursor: Optional[str] = None,
+        event_ticker: Optional[str] = None,
+        series_ticker: Optional[str] = None,
+        min_created_ts: Optional[int] = None,
+        max_created_ts: Optional[int] = None,
+        min_updated_ts: Optional[int] = None,
+        max_close_ts: Optional[int] = None,
+        min_close_ts: Optional[int] = None,
+        min_settled_ts: Optional[int] = None,
+        max_settled_ts: Optional[int] = None,
+        status: Optional[str] = None,
+        tickers: Optional[str] = None,
+        mve_filter: Optional[str] = None,
+    ) -> dict[str, Any]:
+        """Get markets. Filtered by market status and other conditions."""
+        params = {
+            'limit': limit,
+            'cursor': cursor,
+            'event_ticker': event_ticker,
+            'series_ticker': series_ticker,
+            'min_created_ts': min_created_ts,
+            'max_created_ts': max_created_ts,
+            'min_updated_ts': min_updated_ts,
+            'max_close_ts': max_close_ts,
+            'min_close_ts': min_close_ts,
+            'min_settled_ts': min_settled_ts,
+            'max_settled_ts': max_settled_ts,
+            'status': status,
+            'tickers': tickers,
+            'mve_filter': mve_filter,
+        }
+        # Remove None values
+        params = {k: v for k, v in params.items() if v is not None}
+        return self.get(self.markets_url, params=params)
+        
 
 class KalshiWebSocketClient(KalshiBaseClient):
     """Client for handling WebSocket connections to the Kalshi API."""

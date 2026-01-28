@@ -12,7 +12,7 @@ try:
             password=None
         )
 except FileNotFoundError:
-    raise FileNotFoundError(f"Private key file not found at {KEYFILE}")
+    raise FileNotFoundError(f"Private key file not found at apikey.txt")
 except Exception as e:
     raise Exception(f"Error loading private key: {str(e)}")
 
