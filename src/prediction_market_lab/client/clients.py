@@ -1,5 +1,4 @@
-
-# Kalshi client classes from kalshi-starter-code-python
+"""Kalshi client classes from kalshi-starter-code-python"""
 # https://github.com/Kalshi/kalshi-starter-code-python
 
 import requests
@@ -28,7 +27,7 @@ class KalshiBaseClient:
         self.WS_BASE_URL = "wss://api.elections.kalshi.com"
 
     def request_headers(self, method: str, path: str) -> dict[str, Any]:
-        """Generates the required auth entication headers for API requests."""
+        """Generates the required authentication headers for API requests."""
         current_time_milliseconds = int(time.time() * 1000)
         timestamp_str = str(current_time_milliseconds)
 
@@ -69,6 +68,8 @@ class KalshiHttpClient(KalshiBaseClient):
         self.host = self.HTTP_BASE_URL
         self.exchange_url = "/trade-api/v2/exchange"
         self.markets_url = "/trade-api/v2/markets"
+        self.events_url = "/trade-api/v2/events"
+        self.series_url = "/trade-api/v2/series"
         self.portfolio_url = "/trade-api/v2/portfolio"
 
     def rate_limit(self) -> None:
@@ -184,6 +185,60 @@ class KalshiHttpClient(KalshiBaseClient):
         # Remove None values
         params = {k: v for k, v in params.items() if v is not None}
         return self.get(self.markets_url, params=params)
+
+    def get_events(
+        self,
+        limit: Optional[int] = None,
+        cursor: Optional[str] = None,
+        with_nested_markets: Optional[bool] = None,
+        with_milestones: Optional[bool] = None,
+        status: Optional[str] = None,
+        series_ticker: Optional[str] = None,
+        min_close_ts: Optional[int] = None,
+    ) -> dict[str, Any]:
+        """Get events. Filtered by market status and other conditions."""
+        params = {
+            'limit': limit,
+            'cursor': cursor,
+            'with_nested_markets': with_nested_markets,
+            'with_milestones': with_milestones,
+            'status': status,
+            'series_ticker': series_ticker,
+            'min_close_ts': min_close_ts,
+        }
+        # Remove None values
+        params = {k: v for k, v in params.items() if v is not None}
+        return self.get(self.events_url, params=params)
+
+    def get_series_list(
+        self,
+        category: Optional[str] = None,
+        tags: Optional[str] = None,
+        include_product_metadata: Optional[bool] = None,
+        include_volume: Optional[bool] = None,
+    ) -> dict[str, Any]:
+        """Endpoint for getting data about multiple series with specified filters."""
+        params = {
+            'category': category,
+            'tags': tags,
+            'include_product_metadata': include_product_metadata,
+            'include_volume': include_volume,
+        }
+        # Remove None values
+        params = {k: v for k, v in params.items() if v is not None}
+        return self.get(self.series_url, params = params)
+
+    def get_market(self, ticker: str) -> dict[str, Any]:
+        """Get data about a specific market by its ticker."""
+        return self.get(self.markets_url + f"/{ticker}")
+
+    def get_event(self, event_ticker: str) -> dict[str, Any]:
+        """Get data about an event by its ticker."""
+        return self.get(self.events_url + f"/{event_ticker}")
+    
+    def get_series(self, series_ticker: str) -> dict[str, Any]:
+        """Get data about a specific series by its ticker."""
+        return self.get(self.series_url + f"/{series_ticker}")
         
 
 class KalshiWebSocketClient(KalshiBaseClient):
