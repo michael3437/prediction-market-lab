@@ -1,7 +1,10 @@
 .env
+.venv/
 __pycache__
 data/*
 archive/*
 apikey.txt
 db/*
 *.egg-info
+*.csv
+db_to_csv.py
