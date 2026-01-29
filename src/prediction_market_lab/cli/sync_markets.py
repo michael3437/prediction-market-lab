@@ -9,7 +9,7 @@ from prediction_market_lab.db.database import init_db
 
 
 def fetch_all_markets(client: KalshiHttpClient, min_settled_ts: Optional[int] = None) -> list[dict]:
-    """Paginate through all markets."""
+    """Paginate through all markets, keeping those with nonzero volume. Excludes MVE."""
     all_markets = []
     cursor = None
 
@@ -84,6 +84,14 @@ def upsert_markets(con, markets: list[dict]) -> int:
             settlement_ts = EXCLUDED.settlement_ts
     """, rows)
 
+    con.execute("""
+        INSERT INTO metadata (key, value, updated)
+        VALUES ('markets_last_sync', ?, CURRENT_TIMESTAMP)
+        ON CONFLICT (key) DO UPDATE SET
+            value = EXCLUDED.value,
+            updated = EXCLUDED.updated
+    """, [str(len(rows))])
+
     return len(rows)
 
 
@@ -93,12 +101,18 @@ def main():
     min_settled_ts = int((time.time() - 48 * 60 * 60) * 1000) # Default to 48 hours ago
     con = init_db()
 
-    print("fetching markets from kalshi...")
+    markets_last_sync = con.execute("""
+    SELECT updated FROM metadata WHERE key = 'markets_last_sync'
+    """).fetchone()
+    if markets_last_sync:
+        min_settled_ts = int(markets_last_sync[0].timestamp() * 1000) - (6 * 60 * 60 * 1000) # 6 hour overlap of last sync
+
+    print("Fetching markets from kalshi...")
     markets = fetch_all_markets(client, min_settled_ts=min_settled_ts)
-    print(f"fetched {len(markets)} markets total")
+    print(f"Fetched {len(markets)} markets total")
 
     count = upsert_markets(con, markets)
-    print(f"upserted {count} markets into db")
+    print(f"Upserted {count} markets into db")
 
     # Quick summary
     result = con.execute("""
