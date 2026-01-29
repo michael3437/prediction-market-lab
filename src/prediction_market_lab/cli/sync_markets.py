@@ -1,8 +1,10 @@
 """Fetch all markets from Kalshi and upsert into DuckDB."""
 
 import time
+import pandas as pd
 from datetime import datetime, timezone
 from typing import Optional
+
 from prediction_market_lab.client.keys import get_keys
 from prediction_market_lab.client.clients import KalshiHttpClient
 from prediction_market_lab.db.database import init_db
@@ -39,34 +41,40 @@ def fetch_all_markets(client: KalshiHttpClient, min_settled_ts: Optional[int] = 
 
 def upsert_markets(con, markets: list[dict]) -> int:
     """Upsert markets into DuckDB. Returns count of rows affected."""
-    rows = []
-    for m in markets:
-        rows.append((
-            m["ticker"],
-            m["event_ticker"],
-            m["market_type"],
-            m["created_time"],
-            m.get("updated_time"),
-            m["open_time"],
-            m.get("close_time"),
-            m.get("latest_expiration_time"),
-            m["status"],
-            m["volume"],
-            m["volume_fp"],
-            m.get("result"),
-            m["open_interest"],
-            m["open_interest_fp"],
-            m.get("settlement_ts"),
-        ))
+    df = pd.DataFrame([
+        {
+            "ticker": m["ticker"],
+            "event_ticker": m["event_ticker"],
+            "market_type": m["market_type"],
+            "created_time": m["created_time"],
+            "updated_time": m.get("updated_time"),
+            "open_time": m["open_time"],
+            "close_time": m.get("close_time"),
+            "latest_expiration_time": m.get("latest_expiration_time"),
+            "status": m["status"],
+            "volume": m["volume"],
+            "volume_fp": m["volume_fp"],
+            "result": m.get("result"),
+            "open_interest": m["open_interest"],
+            "open_interest_fp": m["open_interest_fp"],
+            "settlement_ts": m.get("settlement_ts"),
+        }
+        for m in markets
+    ])
 
-    con.executemany("""
+    con.execute("""
         INSERT INTO markets (
             ticker, event_ticker, market_type,
             created_time, updated_time, open_time, close_time, latest_expiration_time,
             status, volume, volume_fp, result, open_interest, open_interest_fp,
             settlement_ts
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        SELECT
+            ticker, event_ticker, market_type,
+            created_time, updated_time, open_time, close_time, latest_expiration_time,
+            status, volume, volume_fp, result, open_interest, open_interest_fp,
+            settlement_ts
+        FROM df
         ON CONFLICT (ticker) DO UPDATE SET
             event_ticker = EXCLUDED.event_ticker,
             market_type = EXCLUDED.market_type,
@@ -82,7 +90,7 @@ def upsert_markets(con, markets: list[dict]) -> int:
             open_interest = EXCLUDED.open_interest,
             open_interest_fp = EXCLUDED.open_interest_fp,
             settlement_ts = EXCLUDED.settlement_ts
-    """, rows)
+    """)
 
     con.execute("""
         INSERT INTO metadata (key, value, updated)
@@ -90,9 +98,9 @@ def upsert_markets(con, markets: list[dict]) -> int:
         ON CONFLICT (key) DO UPDATE SET
             value = EXCLUDED.value,
             updated = EXCLUDED.updated
-    """, [str(len(rows))])
+    """, [str(len(df))])
 
-    return len(rows)
+    return len(df)
 
 
 def main():
@@ -105,7 +113,7 @@ def main():
     SELECT updated FROM metadata WHERE key = 'markets_last_sync'
     """).fetchone()
     if markets_last_sync:
-        min_settled_ts = int(markets_last_sync[0].timestamp() * 1000) - (6 * 60 * 60 * 1000) # 6 hour overlap of last sync
+        min_settled_ts = int(markets_last_sync[0].timestamp() * 1000) - (14 * 24 * 60 * 60 * 1000) # 6 hour overlap of last sync
 
     print("Fetching markets from kalshi...")
     markets = fetch_all_markets(client, min_settled_ts=min_settled_ts)
