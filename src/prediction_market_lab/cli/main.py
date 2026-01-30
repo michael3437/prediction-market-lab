@@ -10,6 +10,12 @@ def sync_markets_command(args):
     main()
 
 
+def sync_candles_command(args):
+    """Run the sync candles command."""
+    from prediction_market_lab.cli.sync_candles import main
+    main()
+
+
 def interactive_command(args):
     """Start interactive Python session with client initialized."""
     from prediction_market_lab.cli.interactive import main
@@ -31,6 +37,13 @@ def main():
         help="Fetch and sync market data from Kalshi"
     )
     sync_parser.set_defaults(func=sync_markets_command)
+
+    # sync-candles command
+    candles_parser = subparsers.add_parser(
+        "sync-candles",
+        help="Fetch candlestick data for unsynced markets"
+    )
+    candles_parser.set_defaults(func=sync_candles_command)
 
     # interactive command
     interactive_parser = subparsers.add_parser(
