@@ -10,7 +10,7 @@ from prediction_market_lab.db.database import init_db
 
 # (period_interval_minutes, time_window)
 INTERVALS = [
-    (1, timedelta(days=1)),       # 1min candles, 1 day back
+    (1, timedelta(hours=3)),       # 1min candles, 3 hours
     (60, timedelta(weeks=1)),     # 1hour candles, 1 week back
     (1440, timedelta(days=30)),   # 1day candles, 1 month back
 ]
@@ -145,7 +145,7 @@ def main():
     batch_num = 0
 
     while True:
-        markets = get_unsynced_markets_batch(con, 6) # 6 at a time to stay under 10k candle limit
+        markets = get_unsynced_markets_batch(con, 26) # 26 at a time to stay under 10k candle limit
         if not markets:
             break
 
