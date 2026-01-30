@@ -98,7 +98,7 @@ class KalshiHttpClient(KalshiBaseClient):
         self.raise_if_bad_response(response)
         return response.json()
 
-    def get(self, path: str, params: Optional(dict[str, Any]) = None) -> Any:
+    def get(self, path: str, params: Optional[dict[str, Any]] = None) -> Any:
         """Performs an authenticated GET request to the Kalshi API."""
         if params is None:
             params = {}
@@ -111,7 +111,7 @@ class KalshiHttpClient(KalshiBaseClient):
         self.raise_if_bad_response(response)
         return response.json()
 
-    def delete(self, path: str, params: Optional(dict[str, Any]) = None) -> Any:
+    def delete(self, path: str, params: Optional[dict[str, Any]] = None) -> Any:
         """Performs an authenticated DELETE request to the Kalshi API."""
         if params is None:
             params = {}
@@ -243,6 +243,24 @@ class KalshiHttpClient(KalshiBaseClient):
     def get_series(self, series_ticker: str) -> dict[str, Any]:
         """Get data about a specific series by its ticker."""
         return self.get(self.series_url + f"/{series_ticker}")
+
+    def batch_get_candlesticks(
+        self,
+        market_tickers: str, # Comma-separated list of market tickers. Max 100.
+        start_ts: int, # Unix seconds.
+        end_ts: int,
+        period_interval: int, # Interval in minutes (1, 60, 1440).
+        include_latest_before_start: Optional[bool] = False,
+    ) -> dict[str, Any]:
+        """Retrieve candlestick data for multiple markets. 100 tickers max, 10000 candles max."""
+        params = {
+            'market_tickers': market_tickers,
+            'start_ts': start_ts,
+            'end_ts': end_ts,
+            'period_interval': period_interval,
+            'include_latest_before_start': include_latest_before_start,
+        }
+        return self.get(self.markets_url + "/candlesticks", params=params)
         
 
 class KalshiWebSocketClient(KalshiBaseClient):

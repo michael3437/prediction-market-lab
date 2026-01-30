@@ -113,7 +113,7 @@ def main():
     SELECT updated FROM metadata WHERE key = 'markets_last_sync'
     """).fetchone()
     if markets_last_sync:
-        min_settled_ts = int(markets_last_sync[0].timestamp() * 1000) - (14 * 24 * 60 * 60 * 1000) # 6 hour overlap of last sync
+        min_settled_ts = int(markets_last_sync[0].timestamp() * 1000) - (6 * 60 * 60 * 1000) # 6 hour overlap of last sync
 
     print("Fetching markets from kalshi...")
     markets = fetch_all_markets(client, min_settled_ts=min_settled_ts)

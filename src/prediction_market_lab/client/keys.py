@@ -2,7 +2,6 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 from cryptography.hazmat.primitives import serialization
-from prediction_market_lab.client.clients import KalshiHttpClient, KalshiWebSocketClient
 
 keyfile_path = Path(__file__).parent.parent.parent.parent / "apikey.txt"
 
