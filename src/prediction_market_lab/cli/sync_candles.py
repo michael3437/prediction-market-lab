@@ -10,34 +10,22 @@ from prediction_market_lab.db.database import init_db
 
 # (period_interval_minutes, time_window)
 INTERVALS = [
-    (1, timedelta(hours=3)),       # 1min candles, 3 hours
-    (60, timedelta(weeks=1)),     # 1hour candles, 1 week back
-    (1440, timedelta(days=30)),   # 1day candles, 1 month back
+    (1, timedelta(hours=2.5)),       # 1min candles, 2.5 hours
+    (60, timedelta(days=5)),     # 1hour candles, 5 days
+    (1440, timedelta(days=30)),   # 1day candles, 30 days
 ]
 
 
-def get_unsynced_markets_batch(con, limit: int) -> list[dict]:
-    """Get a batch of markets that haven't had candles synced yet."""
+def get_unsynced_markets(con) -> list[dict]:
+    """Get markets that haven't had candles synced yet."""
     rows = con.execute("""
         SELECT ticker, close_time
         FROM markets
         WHERE candles_synced_at IS NULL
           AND status = 'finalized'
         ORDER BY close_time DESC
-        LIMIT ?
-    """, [limit]).fetchall()
+    """).fetchall()
     return [{"ticker": r[0], "close_time": r[1]} for r in rows]
-
-
-def count_unsynced_markets(con) -> int:
-    """Count markets that haven't had candles synced yet."""
-    result = con.execute("""
-        SELECT COUNT(*)
-        FROM markets
-        WHERE candles_synced_at IS NULL
-          AND status = 'finalized'
-    """).fetchone()
-    return result[0]
 
 
 def fetch_candles_for_markets(
@@ -61,7 +49,6 @@ def fetch_candles_for_markets(
         period_interval=period_interval,
     )
 
-    # Flatten response into rows
     rows = []
     for market in resp.get("markets", []):
         ticker = market["market_ticker"]
@@ -133,10 +120,11 @@ def main():
     client = KalshiHttpClient(key_id, private_key)
     con = init_db()
 
-    total_unsynced = count_unsynced_markets(con)
+    markets = get_unsynced_markets(con)
+    total_unsynced = len(markets)
     print(f"Found {total_unsynced} markets without candles")
 
-    if total_unsynced == 0:
+    if len(markets) == 0:
         con.close()
         return
 
@@ -145,20 +133,25 @@ def main():
     batch_num = 0
 
     while True:
-        markets = get_unsynced_markets_batch(con, 26) # 26 at a time to stay under 10k candle limit
         if not markets:
             break
+        if len(markets) >= 26:
+            batch = markets[:26]
+            markets = markets[26:]
+        else:
+            batch = markets
+            markets = []
 
         batch_num += 1
         try:
-            count = sync_batch(client, con, markets)
+            count = sync_batch(client, con, batch)
             total_candles += count
-            total_markets += len(markets)
+            total_markets += len(batch)
             remaining = total_unsynced - total_markets
-            print(f"Batch {batch_num}: {count} candles for {len(markets)} markets ({remaining} remaining)")
+            print(f"Batch {batch_num}: {count} candles for {len(batch)} markets ({remaining} remaining)")
         except Exception as e:
             print(f"Batch {batch_num} failed: {e}")
-            break # Very recently closed markets have no available candles yet
+            continue
 
     print(f"\nDone. Synced {total_markets} markets, {total_candles} candles total.")
     con.close()

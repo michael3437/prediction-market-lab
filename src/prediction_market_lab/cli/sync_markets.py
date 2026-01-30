@@ -33,8 +33,6 @@ def fetch_all_markets(client: KalshiHttpClient, min_settled_ts: Optional[int] = 
             break
 
         print(f"  fetched {len(all_markets)} markets...")
-        if len(all_markets) >= 200000:
-            break
 
     return all_markets
 
