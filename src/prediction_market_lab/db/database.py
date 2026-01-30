@@ -42,10 +42,29 @@ def init_schema(con: duckdb.DuckDBPyConnection) -> None:
             settlement_ts             TIMESTAMPTZ,
 
             series_ticker             VARCHAR,
-            category                  VARCHAR
+            category                  VARCHAR,
+            candles_synced_at         TIMESTAMPTZ
         )
     """)
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS candlesticks (
+            ticker           VARCHAR NOT NULL,
+            period_interval  INTEGER NOT NULL,  -- 1, 60, or 1440 minutes
+            end_period_ts    TIMESTAMPTZ NOT NULL,
 
+            -- OHLC prices in cents
+            price_open       INTEGER,
+            price_high       INTEGER,
+            price_low        INTEGER,
+            price_close      INTEGER,
+
+            volume           BIGINT NOT NULL,
+            open_interest    BIGINT NOT NULL,
+
+            PRIMARY KEY (ticker, period_interval, end_period_ts),
+            FOREIGN KEY (ticker) REFERENCES markets(ticker)
+        )
+    """)
 
 
 def init_db() -> duckdb.DuckDBPyConnection:
