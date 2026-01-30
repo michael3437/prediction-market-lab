@@ -22,6 +22,12 @@ def interactive_command(args):
     main()
 
 
+def brier_score_command(args):
+    """Run Brier score analysis."""
+    from prediction_market_lab.cli.brier_score import main
+    main()
+
+
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -51,6 +57,13 @@ def main():
         help="Start interactive Python shell with client"
     )
     interactive_parser.set_defaults(func=interactive_command)
+
+    # brier-score command
+    brier_parser = subparsers.add_parser(
+        "brier-score",
+        help="Calculate Brier scores for market forecasts"
+    )
+    brier_parser.set_defaults(func=brier_score_command)
 
     args = parser.parse_args()
 
