@@ -43,11 +43,10 @@ def get_forecasts_at_interval(
         m.volume,
         m.open_interest
     FROM markets m
-    ASOF JOIN candlesticks c
+    ASOF JOIN (SELECT * FROM candlesticks WHERE price_close IS NOT NULL) c
         ON m.ticker = c.ticker
         AND c.end_period_ts <= m.close_time - INTERVAL '{minutes_before} MINUTES'
     WHERE c.period_interval = {candle_period}
-    AND c.price_close IS NOT NULL
     AND m.result IS NOT NULL
     AND m.candles_synced_at IS NOT NULL
     """
