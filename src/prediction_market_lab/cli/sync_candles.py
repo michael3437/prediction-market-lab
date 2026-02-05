@@ -151,7 +151,16 @@ def main():
             print(f"Batch {batch_num}: {count} candles for {len(batch)} markets ({remaining} remaining)")
         except Exception as e:
             print(f"Batch {batch_num} failed: {e}")
-            continue
+            print("Fetching individually...")
+            for item in batch:
+                try:
+                    count = sync_batch(client, con, [item])
+                    total_candles += count
+                    total_markets += 1
+                    remaining = total_unsynced - total_markets
+                    print(f"Fetched {count} candles for 1 market")
+                except Exception as e:
+                    print(f"Failed to fetch for {item}: {e}")
 
     print(f"\nDone. Synced {total_markets} markets, {total_candles} candles total.")
     con.close()
