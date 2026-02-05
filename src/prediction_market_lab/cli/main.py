@@ -28,6 +28,12 @@ def brier_score_command(args):
     main()
 
 
+def test_command(args):
+    """Run test.py."""
+    from prediction_market_lab.cli.test import main
+    main()
+
+
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -64,6 +70,13 @@ def main():
         help="Calculate Brier scores for market forecasts"
     )
     brier_parser.set_defaults(func=brier_score_command)
+
+    # test command
+    test_parser = subparsers.add_parser(
+        "test",
+        help="Run whatever is in test.py. For quickly testing ideas."
+    )
+    test_parser.set_defaults(func=test_command)
 
     args = parser.parse_args()
 

@@ -8,3 +8,4 @@ db/*
 *.egg-info
 *.csv
 db_to_csv.py
+src/prediction_market_lab/cli/test.py
