@@ -101,6 +101,33 @@ def upsert_markets(con, markets: list[dict]) -> int:
     return len(df)
 
 
+def fetch_categories(con, client) -> int:
+    """Fetches and updates categories for markets without one."""
+    markets = con.execute("""
+    SELECT ticker, event_ticker FROM markets WHERE category IS NULL
+    """).fetchall()
+
+    count = 0
+
+    for ticker, event_ticker in markets:
+        print(f"\rUpdated {count}", end="", flush=True)
+        try:
+            series_ticker = client.get_event(event_ticker)['event']['series_ticker']
+            category = client.get_series(series_ticker)['series']['category']
+            con.execute("""
+                UPDATE markets SET category = ? WHERE ticker = ?
+            """, [category, ticker])
+            count += 1
+        except KeyboardInterrupt:
+            break
+        except Exception as e:
+            print(f"Failed to fetch category for {ticker}", e)
+            continue
+    
+    print()
+    return count
+
+
 def main():
     key_id, private_key = get_keys()
     client = KalshiHttpClient(key_id, private_key)
@@ -131,6 +158,15 @@ def main():
     print("\nmarkets by status:")
     for status, cnt in result:
         print(f"  {status}: {cnt}")
+
+    print("Fetching categories...")
+    count = con.execute("""
+        SELECT count(*) FROM markets WHERE category IS NULL
+    """).fetchone()[0]
+    print(f"Found {count} markets without a category")
+
+    count = fetch_categories(con, client)
+    print(f"Fetched categories for {count} markets")
 
     con.close()
 
