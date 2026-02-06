@@ -31,35 +31,36 @@ def get_forecasts_at_interval(
     interval_name: str,
     minutes_before: int,
     candle_period: int,
-    # categories: Optional[list[str]], - to be implemented
-    # volume_threshold: Optional[int], - to be implemented
     ) -> pd.DataFrame:
-    """Returns DataFrame with columns: ticker, forecast, outcome, volume, open_interest."""
+    """Returns DataFrame with columns: ticker, forecast, outcome, volume, open_interest, category."""
     query = f"""
     SELECT
         m.ticker,
         c.price_close / 100.0 AS forecast,
         CASE WHEN m.result = 'yes' THEN 1 ELSE 0 END AS outcome,
         m.volume,
-        m.open_interest
+        m.open_interest,
+        m.category
     FROM markets m
-    ASOF JOIN (SELECT * FROM candlesticks WHERE price_close IS NOT NULL) c
+    ASOF JOIN (SELECT * FROM candlesticks
+                WHERE price_close IS NOT NULL
+                AND period_interval = {candle_period}) c
         ON m.ticker = c.ticker
         AND c.end_period_ts <= m.close_time - INTERVAL '{minutes_before} MINUTES'
-    WHERE c.period_interval = {candle_period}
-    AND m.result IS NOT NULL
+    WHERE m.result IS NOT NULL
     AND m.candles_synced_at IS NOT NULL
+    AND m.category IS NOT NULL
     """
-    return con.execute(query).fetchdf()
+    return con.execute(query).df()
 
-def calculate_all_brier_scores(con) -> pd.DataFrame:
+def calculate_all_brier_scores(con, category) -> pd.DataFrame:
     """Calculate Brier scores for all intervals."""
     results = []
-
     for name, minutes_before, candle_period in INTERVALS:
         df = get_forecasts_at_interval(
-            con, name, minutes_before, candle_period # category, volume_threshold,
+            con, name, minutes_before, candle_period
         )
+        df = df[df['category']==category]
         if len(df) == 0:
             continue
         brier = calculate_brier(df)
@@ -67,10 +68,10 @@ def calculate_all_brier_scores(con) -> pd.DataFrame:
             'interval': name,
             'brier_score': brier,
             'n_markets': len(df),
-            # 'category': category,
+            'category': category,
             # 'volume_threshold': volume_threshold,
         })
-    
+
     return pd.DataFrame(results)
 
 def print_brier_scores_table(df: pd.DataFrame, title:str):
@@ -81,10 +82,12 @@ def print_brier_scores_table(df: pd.DataFrame, title:str):
 
 def main():
     con = init_db()
-
-    print("Calculating Brier scores by interval...")
-    df = calculate_all_brier_scores(con)
-    print_brier_scores_table(df, "Brier Scores by Interval")
+    categories = set(con.execute("SELECT category FROM markets WHERE category IS NOT NULL").df()['category'])
+    
+    print("Calculating Brier scores by interval and category...")
+    for category in categories:
+        df = calculate_all_brier_scores(con, category)
+        print_brier_scores_table(df, "Brier Scores by Interval and Category")
 
     con.close()
 
