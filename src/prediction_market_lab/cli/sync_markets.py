@@ -121,6 +121,7 @@ def fetch_categories(con, client) -> int:
         except KeyboardInterrupt:
             break
         except Exception as e:
+            print()
             print(f"Failed to fetch category for {ticker}", e)
             continue
     
